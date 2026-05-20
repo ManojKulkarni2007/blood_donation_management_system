@@ -1,0 +1,77 @@
+body { background: yellow; }
+
+/* General page styling */
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom, #fbe9e7, #ffccbc);
+  color: #2c2c2c;
+  margin: 0;
+  padding: 0;
+}
+
+/* Heading */
+h2 {
+  text-align: center;
+  color: darkred;
+  margin: 25px 0;
+}
+
+/* Form box */
+form {
+  max-width: 450px;
+  margin: 30px auto;
+  padding: 25px;
+  border: 1px solid #b71c1c;
+  border-radius: 10px;
+  background: #fff3e0;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Labels and inputs aligned neatly */
+label {
+  display: inline-block;
+  width: 160px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+input {
+  width: 220px;
+  padding: 6px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Button styling */
+button {
+  background: #e53935;
+  color: white;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: block;
+  margin: 15px auto;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+button:hover {
+  background: #b71c1c;
+}
+
+/* Back to Dashboard link */
+a {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  color: #b71c1c;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

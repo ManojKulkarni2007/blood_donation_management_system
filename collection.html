@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blood Collection</title>
+    <link rel="stylesheet" href="collection.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Blood Collection Form</h2>
+        <form action="collection.php" method="post">
+            
+            <label for="donar_id">Donor ID</label>
+            <input type="number" id="donar_id" name="donar_id" required>
+
+            <label for="collection_date">Collection Date</label>
+            <input type="date" id="collection_date" name="collection_date" required>
+
+            <label for="collection_quantity">Quantity (ml)</label>
+            <input type="number" id="collection_quantity" name="collection_quantity" required>
+
+            <label for="blood_group">Blood Group</label>
+            <select id="blood_group" name="blood_group" required>
+                <option value="">--Select--</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+            </select>
+
+            <button type="submit">Submit Collection</button>
+        </form>
+    </div>
+</body>
+</html>

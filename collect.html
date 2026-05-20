@@ -1,0 +1,21 @@
+<?php include("includes/navbar.php"); ?>
+<?php include("includes/header.php"); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><center>Blood Collection</center></title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2><center>Blood Collection</center></h2>
+  <form action="collection.php" method="post">
+    <label>Donor ID:</label><input type="number" name="donor_id" required><br>
+    <label>Date:</label><input type="date" name="date" required><br>
+    <label>Quantity (ml):</label><input type="number" name="quantity" required><br>
+    <button type="submit">Record Donation</button>
+  </form>
+</body>
+</html>
+<?php include("includes/footer.php"); ?>
+<?php include("includes/back.php"); ?> 

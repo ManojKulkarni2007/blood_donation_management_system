@@ -1,0 +1,76 @@
+/* Main background */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #990000; /* deep red background */
+  font-family: Arial, sans-serif;
+}
+
+/* Inner container with contrast color */
+.container {
+  background-color: #ffffff; /* white contrast box */
+  margin: 1cm;              /* 1 cm gap around */
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+/* Logo styling */
+.logo {
+  width: 120px;
+  height: auto;
+  margin-bottom: 15px;
+}
+
+/* Heading */
+h1 {
+  color: #990000;
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+/* Contact details */
+.details {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+/* Navigation cards */
+.options {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin: 30px 0;
+}
+
+.card {
+  background: #ffcccc;
+  color: #18038e;
+  padding: 25px;
+  border-radius: 10px;
+  width: 220px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  text-decoration: none;
+}
+
+.card:hover {
+  background: #ffe6e6;
+  transform: scale(1.05);
+}
+
+/* Event advertisement */
+.events {
+  background: #f9f9f9;
+  border: 2px solid #990000;
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 30px;
+}
+
+.events h2 {
+  color: #990000;
+}
