@@ -25,10 +25,20 @@ function navLink($href, $icon, $label, $current) {
     <ul>
       <?= navLink('index.php',       '🌐', 'Front Page',      $current) ?>
       <?= navLink('home.php',        '📊', 'Dashboard',       $current) ?>
-      <?= navLink('about.php',       'ℹ️',  'About',           $current) ?>
-      <?= navLink('donor.php',       '🩸', 'Donate Blood',    $current) ?>
-      <?= navLink('search_donor.php', '🔍', 'Search Donor',    $current) ?>
-      <?= navLink('request_blood.php',     '📋', 'Request Blood',   $current) ?>
+      
+      <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'donor'): ?>
+        <?= navLink('donor.php',       '🩸', 'Donate Blood',    $current) ?>
+        <?= navLink('donor_history.php', '📋', 'My History',      $current) ?>
+        <?= navLink('notifications.php', '🔔', 'Notifications',   $current) ?>
+        <?= navLink('request_blood.php','🏥', 'Request Blood',   $current) ?>
+      <?php elseif (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+        <?= navLink('donor.php',       '🩸', 'Register Donor',  $current) ?>
+        <?= navLink('search_donor.php', '🔍', 'Search Donors',   $current) ?>
+        <?= navLink('notifications.php', '🔔', 'Notifications',   $current) ?>
+        <?= navLink('transactions.php', '📋', 'All Transactions', $current) ?>
+      <?php else: ?>
+        <?= navLink('about.php',       'ℹ️',  'About',           $current) ?>
+      <?php endif; ?>
       
       <?php if (isset($_SESSION['donor_id'])): ?>
         <?= navLink('logout.php',      '🔓', 'Logout',           $current) ?>
@@ -49,6 +59,27 @@ function navLink($href, $icon, $label, $current) {
     .dark-theme .moon-icon { display: block !important; }
     .dark-theme .sun-icon { display: none !important; }
     .theme-toggle:hover { background: rgba(0,0,0,0.2) !important; }
+
+    /* ── Scrollable Sidebar ── */
+    .sidebar {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      scroll-behavior: smooth;
+    }
+    /* Custom slim scrollbar for sidebar */
+    .sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .sidebar::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.25);
+      border-radius: 4px;
+    }
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.45);
+    }
   </style>
   <div class="sidebar-footer">© 2026 BDMS</div>
 </aside>

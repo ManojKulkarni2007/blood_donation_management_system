@@ -17,6 +17,19 @@ $sql = "INSERT INTO Requests (patient_name, blood_group, units, hospital, contac
         VALUES ('$patient_name', '$blood_group', '$units', '$hospital', '$contact')";
 
 if ($conn->query($sql) === TRUE) {
+    session_start();
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'donor') {
+        $donor_id = $_SESSION['donor_id'];
+        $conn->query("CREATE TABLE IF NOT EXISTS Notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            donor_id INT,
+            message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_request_acceptance BOOLEAN DEFAULT FALSE
+        )");
+        $msg = "You requested $units units of $blood_group blood for $patient_name at $hospital.";
+        $conn->query("INSERT INTO Notifications (donor_id, message, is_request_acceptance) VALUES ($donor_id, '$msg', TRUE)");
+    }
     $conn->close();
     header("Location: request_blood.php?status=success");
     exit();

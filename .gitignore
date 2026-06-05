@@ -1,0 +1,19 @@
+# Ignore database configuration files containing credentials
+db.php
+includes/db.php
+
+# Ignore the legacy backups directory to keep repository clean
+legacy_backup/
+
+# Ignore user upload samples in root (keep the system logo)
+*.jpg
+*.jpeg
+*.png
+!images/
+!logo.jpeg
+
+# OS & Editor configurations
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

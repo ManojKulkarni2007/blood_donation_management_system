@@ -1,6 +1,17 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+include_once 'includes/auth.php';
+include_once 'includes/db.php';
+
+// If a donor is logged in, fetch their fixed registration fields
+$donor_blood_group = '';
+$donor_contact     = '';
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'donor' && isset($_SESSION['donor_id'])) {
+    $did = intval($_SESSION['donor_id']);
+    $res = mysqli_query($conn, "SELECT donar_blood_group, donar_contact FROM Donar WHERE donar_id = $did LIMIT 1");
+    if ($res && $row = mysqli_fetch_assoc($res)) {
+        $donor_blood_group = $row['donar_blood_group'];
+        $donor_contact     = $row['donar_contact'];
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -264,9 +275,16 @@ if (session_status() === PHP_SESSION_NONE) {
     .wizard-buttons {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       margin-top: 40px;
       border-top: 1px solid #eee;
       padding-top: 24px;
+      gap: 12px;
+    }
+    .btn-group-right {
+      display: flex;
+      gap: 12px;
+      margin-left: auto;
     }
     body.dark-theme .wizard-buttons {
       border-top-color: var(--border-color);
@@ -284,7 +302,6 @@ if (session_status() === PHP_SESSION_NONE) {
       background: linear-gradient(135deg, #e53935, #b71c1c);
       color: #fff;
       box-shadow: 0 4px 15px rgba(229,57,53,0.3);
-      margin-left: auto;
     }
     .btn-next:hover:not(:disabled) {
       transform: translateY(-2px);
@@ -309,6 +326,27 @@ if (session_status() === PHP_SESSION_NONE) {
       cursor: not-allowed;
       transform: none !important;
       box-shadow: none !important;
+    }
+    /* Clear button — neutral secondary style (reset action) */
+    .btn-clear {
+      background: #f0f0f0;
+      color: #555;
+      border: 1.5px solid #ddd;
+      box-shadow: none;
+    }
+    body.dark-theme .btn-clear {
+      background: var(--bg-main);
+      color: #bbb;
+      border-color: var(--border-color);
+    }
+    .btn-clear:hover {
+      background: #e0e0e0;
+      color: #333;
+      transform: translateY(-1px);
+    }
+    body.dark-theme .btn-clear:hover {
+      background: var(--border-color);
+      color: #eee;
     }
 
     /* Eligibility Overlay Modal */
@@ -360,6 +398,11 @@ if (session_status() === PHP_SESSION_NONE) {
       60% { transform: scale(1.1); }
       80% { transform: scale(1); }
       100% { transform: scale(1); }
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.6; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.6; }
     }
     .modal-title {
       font-size: 26px;
@@ -577,6 +620,7 @@ if (session_status() === PHP_SESSION_NONE) {
               </div>
             </div>
 
+            <?php if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'donor'): ?>
             <div class="form-grid full-width">
               <div class="form-group">
                 <label for="donar_email">User ID / Email Address *</label>
@@ -604,6 +648,12 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="error-feedback" id="err_confirm">❌ Passwords do not match.</div>
               </div>
             </div>
+            <?php else: ?>
+            <!-- Logged-in donor: hidden fields carry the dummy bypass values invisibly -->
+            <input type="hidden" id="donar_email" name="donar_email" value="donor@dummy.com">
+            <input type="hidden" id="reg_password" name="reg_password" value="dummy1234">
+            <input type="hidden" id="reg_confirm" name="reg_confirm" value="dummy1234">
+            <?php endif; ?>
           </div>
 
           <!-- ==============================================
@@ -611,8 +661,11 @@ if (session_status() === PHP_SESSION_NONE) {
                ============================================== -->
           <div class="wizard-step-panel" id="stepPanel2">
             <div class="section-title">🩺 Medical Attributes Verification</div>
+
+            <!-- Clearance status strip (shown after clicking Clear) -->
+            <div id="clearanceStatus" style="display:none; border-radius:12px; padding:13px 18px; margin-bottom:18px; font-size:14px; font-weight:700; display:none; align-items:center; gap:10px;"></div>
             
-            <div class="form-grid three-col">
+            <div class="form-grid">
               <div class="form-group">
                 <label for="donar_weight">Weight (kg) *</label>
                 <input type="number" id="donar_weight" name="donar_weight" min="1" step="0.1" placeholder="e.g. 68" required>
@@ -625,6 +678,11 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="hint">Min: 12.5 (F) / 13.0 (M/O)</div>
                 <div class="error-feedback" id="err_hb">❌ Hemoglobin below required limits.</div>
               </div>
+            </div>
+
+            <?php if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'donor'): ?>
+            <!-- Temperature: shown only for NEW registrations, not logged-in donors -->
+            <div class="form-grid full-width">
               <div class="form-group">
                 <label for="donar_temperature">Temperature (°F) *</label>
                 <input type="number" id="donar_temperature" name="donar_temperature" min="1" step="0.1" placeholder="e.g. 98.6" required>
@@ -632,6 +690,10 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="error-feedback" id="err_temp">❌ Temperature must be 97.0°F – 99.5°F.</div>
               </div>
             </div>
+            <?php else: ?>
+            <!-- Hidden temperature field with valid default for logged-in donors -->
+            <input type="hidden" id="donar_temperature" name="donar_temperature" value="98.6">
+            <?php endif; ?>
 
             <div class="form-grid three-col">
               <div class="form-group">
@@ -648,22 +710,34 @@ if (session_status() === PHP_SESSION_NONE) {
               </div>
               <div class="form-group">
                 <label for="donar_blood_group">Blood Group *</label>
-                <select id="donar_blood_group" name="donar_blood_group" required>
-                  <option value="">Select</option>
-                  <option>A+</option><option>A-</option>
-                  <option>B+</option><option>B-</option>
-                  <option>O+</option><option>O-</option>
-                  <option>AB+</option><option>AB-</option>
-                </select>
-                <div class="error-feedback" id="err_blood_group">❌ Blood Group is required.</div>
+                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'donor'): ?>
+                  <input type="text" id="donar_blood_group_display" value="<?php echo htmlspecialchars($donor_blood_group); ?>" readonly
+                    style="background:#f5f5f5; cursor:not-allowed; border-color:#e0e0e0; color:#444;">
+                  <input type="hidden" id="donar_blood_group" name="donar_blood_group" value="<?php echo htmlspecialchars($donor_blood_group); ?>">
+                <?php else: ?>
+                  <select id="donar_blood_group" name="donar_blood_group" required>
+                    <option value="">Select</option>
+                    <option>A+</option><option>A-</option>
+                    <option>B+</option><option>B-</option>
+                    <option>O+</option><option>O-</option>
+                    <option>AB+</option><option>AB-</option>
+                  </select>
+                  <div class="error-feedback" id="err_blood_group">❌ Blood Group is required.</div>
+                <?php endif; ?>
               </div>
             </div>
 
             <div class="form-grid">
               <div class="form-group">
                 <label for="donar_contact">Contact Number *</label>
-                <input type="tel" id="donar_contact" name="donar_contact" placeholder="+91 XXXXXXXXXX" required>
-                <div class="error-feedback" id="err_contact">❌ Contact number is required.</div>
+                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'donor'): ?>
+                  <input type="tel" id="donar_contact" name="donar_contact"
+                    value="<?php echo htmlspecialchars($donor_contact); ?>" readonly
+                    style="background:#f5f5f5; cursor:not-allowed; border-color:#e0e0e0; color:#444;">
+                <?php else: ?>
+                  <input type="tel" id="donar_contact" name="donar_contact" placeholder="+91 XXXXXXXXXX" required>
+                  <div class="error-feedback" id="err_contact">❌ Contact number is required.</div>
+                <?php endif; ?>
               </div>
               <div class="form-group">
                 <label for="donar_last_donation">Last Donation Date</label>
@@ -683,8 +757,35 @@ if (session_status() === PHP_SESSION_NONE) {
 
             <div class="form-grid full-width">
               <div class="form-group">
-                <label for="donar_medical_conditions">Medical Conditions / Medications (Optional)</label>
-                <input type="text" id="donar_medical_conditions" name="donar_medical_conditions" placeholder="e.g. None / On aspirin / Diabetes">
+                <label for="donar_medical_conditions_select">Medical Conditions / Medications (Optional)</label>
+                <select id="donar_medical_conditions_select" name="donar_medical_conditions_select"
+                  style="width:100%; padding:12px 16px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:14.5px; font-family:inherit; background:#fafafa; transition:all 0.3s ease; box-sizing:border-box;"
+                  onchange="handleConditionSelect(this.value)">
+                  <option value="">— None / No known conditions —</option>
+                  <option value="Diabetes">Diabetes</option>
+                  <option value="Hypertension (High BP)">Hypertension (High BP)</option>
+                  <option value="Asthma">Asthma</option>
+                  <option value="Heart Disease">Heart Disease</option>
+                  <option value="Thyroid Disorder">Thyroid Disorder</option>
+                  <option value="Anaemia">Anaemia</option>
+                  <option value="On Aspirin / Blood Thinners">On Aspirin / Blood Thinners</option>
+                  <option value="On Antibiotics">On Antibiotics</option>
+                  <option value="Recent Surgery (within 6 months)">Recent Surgery (within 6 months)</option>
+                  <option value="Skin Disorder">Skin Disorder</option>
+                  <option value="Epilepsy / Seizures">Epilepsy / Seizures</option>
+                  <option value="HIV / Hepatitis">HIV / Hepatitis</option>
+                  <option value="Other">Other (please specify below)</option>
+                </select>
+
+                <!-- Shown only when "Other" is selected -->
+                <div id="other_condition_wrapper" style="display:none; margin-top:10px;">
+                  <input type="text" id="other_condition_text"
+                    placeholder="Describe your condition or medication…"
+                    style="width:100%; padding:12px 16px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:14.5px; font-family:inherit; background:#fafafa; transition:all 0.3s ease; box-sizing:border-box;">
+                </div>
+
+                <!-- Hidden field that gets the final combined value before submission -->
+                <input type="hidden" id="donar_medical_conditions" name="donar_medical_conditions">
               </div>
             </div>
           </div>
@@ -759,8 +860,14 @@ if (session_status() === PHP_SESSION_NONE) {
 
           <!-- Navigation buttons -->
           <div class="wizard-buttons" id="wizardButtonsRow">
-            <button type="button" class="btn-nav btn-prev" id="btnPrev" style="display:none;">Back</button>
-            <button type="button" class="btn-nav btn-next" id="btnNext">Next Step</button>
+            <button type="button" class="btn-nav btn-prev" id="btnPrev" style="display:none;">&#8592; Back</button>
+            <!-- Right-side button group (shown on Step 2) -->
+            <div class="btn-group-right" id="btnGroupRight" style="display:none;">
+              <button type="button" class="btn-nav btn-clear" id="btnClear">🗑️ Clear</button>
+              <button type="button" class="btn-nav btn-next" id="btnNext">🩸 Register</button>
+            </div>
+            <!-- Single next button (shown on Step 1) -->
+            <button type="button" class="btn-nav btn-next" id="btnNextSingle" style="margin-left:auto;">Next Step</button>
           </div>
 
         </form>
@@ -774,26 +881,74 @@ if (session_status() === PHP_SESSION_NONE) {
   </div>
 
   <!-- ==============================================
-       ELIGIBILITY SUCCESS MODAL (STEP 2 POP-UP)
+       TWO-PHASE REGISTRATION MODAL
+       Phase 1: Eligible + 60-sec countdown
+       Phase 2: Registration Successful + date/location
        ============================================== -->
   <div class="eligibility-overlay" id="eligibilityOverlay">
-    <div class="eligibility-modal">
-      <div class="modal-icon">❤️</div>
-      <h2 class="modal-title">Eligibility Confirmed!</h2>
-      <p class="modal-desc">
-        Congratulations! You have satisfied all vital signs and medical parameters checked for blood donation. 
-        You are completely fit and cleared to donate blood.
-      </p>
+    <div class="eligibility-modal" style="max-width:520px;">
 
-      <div class="modal-input-group">
-        <label for="donated_amount">Amount of Blood Donated *</label>
-        <select id="donated_amount">
-          <option value="350">350 ml (Standard Single Unit)</option>
-          <option value="450">450 ml (Double / Large Unit)</option>
-        </select>
+      <!-- ── PHASE 1 ── -->
+      <div id="modalPhase1">
+        <div class="modal-icon" style="font-size:64px; margin-bottom:16px;">❤️</div>
+        <h2 class="modal-title" style="color:#2e7d32; font-size:24px; font-weight:800; margin-bottom:10px;">You Are Eligible to Donate Blood!</h2>
+        <p class="modal-desc" style="margin-bottom:6px;">Congratulations! All your medical parameters are within safe limits.</p>
+        <p class="modal-desc" style="font-weight:600; color:#b71c1c; margin-bottom:24px;">We will assign a date to donate blood. Please wait while we process your registration…</p>
+
+        <!-- Circular countdown ring -->
+        <div style="position:relative; width:120px; height:120px; margin:0 auto 20px;">
+          <svg width="120" height="120" style="transform:rotate(-90deg);">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#f0f0f0" stroke-width="10"/>
+            <circle id="countdownRing" cx="60" cy="60" r="52" fill="none"
+              stroke="#b71c1c" stroke-width="10"
+              stroke-dasharray="326.73" stroke-dashoffset="0"
+              style="transition:stroke-dashoffset 1s linear;"/>
+          </svg>
+          <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span id="countdownNum" style="font-size:32px; font-weight:800; color:#b71c1c; line-height:1;">1</span>
+            <span style="font-size:11px; color:#888; font-weight:600; margin-top:2px;">second</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:#888; font-weight:600;">
+          <span style="width:8px; height:8px; background:#b71c1c; border-radius:50%; display:inline-block; animation:pulse 1.2s infinite;"></span>
+          Processing your registration…
+        </div>
       </div>
 
-      <button type="button" class="modal-btn" id="btnConfirmDonation">Submit Donation &amp; Download Report</button>
+      <!-- ── PHASE 2 ── -->
+      <div id="modalPhase2" style="display:none;">
+        <div style="font-size:64px; margin-bottom:16px;">&#127881;</div>
+        <h2 style="color:#2e7d32; font-size:24px; font-weight:800; margin-bottom:8px;">Registration Successful!</h2>
+        <p style="font-size:14px; color:#666; margin-bottom:24px;">Thank you for registering. Your donation slot has been assigned.</p>
+
+        <div style="background:#f9f9f9; border:1px solid #e8e8e8; border-radius:16px; padding:22px; margin-bottom:24px; text-align:left;">
+          <div style="display:flex; align-items:flex-start; gap:14px; margin-bottom:16px;">
+            <span style="font-size:26px;">&#128197;</span>
+            <div>
+              <div style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Assigned Donation Date</div>
+              <div id="assignedDate" style="font-size:18px; font-weight:800; color:#b71c1c;"></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:14px;">
+            <span style="font-size:26px;">&#128205;</span>
+            <div>
+              <div style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">Donation Location</div>
+              <div style="font-size:15px; font-weight:700; color:#333;">LifeLine Blood Bank</div>
+              <div style="font-size:13px; color:#666; margin-top:2px;">123 Main Road, Hubli, Karnataka — 580001</div>
+              <div style="font-size:13px; color:#888; margin-top:2px;">&#128222; +91-9876543210</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="ajaxStatusMsg" style="font-size:13px; color:#2e7d32; font-weight:600; margin-bottom:20px;"></div>
+
+        <a id="btnGoToDashboard" href="home.php"
+          style="display:block; width:100%; padding:15px; background:linear-gradient(135deg,#e53935,#b71c1c); color:#fff; font-weight:700; font-size:16px; border-radius:12px; text-decoration:none; text-align:center; box-shadow:0 4px 15px rgba(229,57,53,.3); transition:all .3s;">
+          &#128202; Go to Dashboard
+        </a>
+      </div>
+
     </div>
   </div>
 
@@ -802,6 +957,8 @@ if (session_status() === PHP_SESSION_NONE) {
   <script src="theme.js"></script>
   <script>
     let currentStep = 1;
+    const isLoggedDonor = <?php echo (isset($_SESSION['role']) && $_SESSION['role'] === 'donor') ? 'true' : 'false'; ?>;
+    const donorName = "<?php echo isset($_SESSION['donor_name']) ? addslashes($_SESSION['donor_name']) : ''; ?>";
     let registeredData = null; // Stored response from AJAX
 
     // UI elements
@@ -822,6 +979,8 @@ if (session_status() === PHP_SESSION_NONE) {
     const eligibilityOverlay = document.getElementById('eligibilityOverlay');
     const btnConfirmDonation = document.getElementById('btnConfirmDonation');
     const btnDownloadPDF = document.getElementById('btnDownloadPDF');
+    const btnClear = document.getElementById('btnClear');
+    const clearanceStatus = document.getElementById('clearanceStatus');
 
     // Toggle Password visibility
     function togglePassword(inputId, icon) {
@@ -832,6 +991,31 @@ if (session_status() === PHP_SESSION_NONE) {
       } else {
         inp.type = 'password';
         icon.textContent = '👁️';
+      }
+    }
+
+    // Show/hide the "Other" text input for medical conditions
+    function handleConditionSelect(val) {
+      const wrapper = document.getElementById('other_condition_wrapper');
+      const textBox = document.getElementById('other_condition_text');
+      if (val === 'Other') {
+        wrapper.style.display = 'block';
+        textBox.focus();
+      } else {
+        wrapper.style.display = 'none';
+        textBox.value = '';
+      }
+    }
+
+    // Resolve the final medical conditions value into the hidden field
+    function resolveMedicalConditions() {
+      const sel = document.getElementById('donar_medical_conditions_select');
+      const otherText = document.getElementById('other_condition_text').value.trim();
+      const hidden = document.getElementById('donar_medical_conditions');
+      if (sel && sel.value === 'Other') {
+        hidden.value = otherText || 'Other';
+      } else {
+        hidden.value = sel ? sel.value : '';
       }
     }
 
@@ -859,18 +1043,54 @@ if (session_status() === PHP_SESSION_NONE) {
       if (err) err.classList.toggle('show', show);
     }
 
-    // Form Navigation & Checks
-    btnNext.addEventListener('click', () => {
-      if (currentStep === 1) {
-        if (validateStep1()) {
-          goToStep(2);
-        }
-      } else if (currentStep === 2) {
-        if (validateStep2()) {
-          // Open the Success Eligibility Modal popup
-          eligibilityOverlay.classList.add('active');
-        }
+    const btnNextSingle = document.getElementById('btnNextSingle');
+    const btnGroupRight = document.getElementById('btnGroupRight');
+
+    // Step 1 → Step 2
+    btnNextSingle.addEventListener('click', () => {
+      if (currentStep === 1 && validateStep1()) {
+        goToStep(2);
       }
+    });
+
+    // Step 2 Register button → Phase 1 modal + AJAX in background
+    btnNext.addEventListener('click', () => {
+      if (currentStep === 2 && validateStep2()) {
+        startRegistrationFlow();
+      }
+    });
+
+    // Clear button → reset all editable Step 2 fields
+    btnClear.addEventListener('click', () => {
+      // Reset all editable Step 2 inputs
+      const fields = ['donar_weight','donar_hemoglobin','donar_bp_systolic',
+                       'donar_bp_diastolic','donar_last_donation','donar_address'];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.value = '';
+          el.classList.remove('valid','invalid');
+        }
+      });
+
+      // Reset medical conditions dropdown + other text
+      const condSel = document.getElementById('donar_medical_conditions_select');
+      if (condSel) { condSel.value = ''; }
+      const otherTxt = document.getElementById('other_condition_text');
+      if (otherTxt) { otherTxt.value = ''; }
+      const otherWrap = document.getElementById('other_condition_wrapper');
+      if (otherWrap) { otherWrap.style.display = 'none'; }
+      const hiddenCond = document.getElementById('donar_medical_conditions');
+      if (hiddenCond) { hiddenCond.value = ''; }
+
+      // Hide all error messages
+      ['err_weight','err_hb','err_temp','err_systolic','err_diastolic',
+       'err_blood_group','err_contact','err_address','err_lastdon'].forEach(id => {
+        toggleErr(id, false);
+      });
+
+      // Hide the clearance strip if present
+      if (clearanceStatus) { clearanceStatus.style.display = 'none'; clearanceStatus.innerHTML = ''; }
     });
 
     btnPrev.addEventListener('click', () => {
@@ -904,12 +1124,22 @@ if (session_status() === PHP_SESSION_NONE) {
 
       // Button rows
       btnPrev.style.display = step === 1 || step === 3 ? 'none' : 'block';
-      
+
       if (step === 3) {
         wizardButtonsRow.style.display = 'none';
       } else {
         wizardButtonsRow.style.display = 'flex';
-        btnNext.textContent = step === 2 ? 'Clear & Donate Blood 🩸' : 'Next Step';
+        if (step === 2) {
+          // Show the right-side group (Clear + Register) and hide single Next
+          btnGroupRight.style.display = 'flex';
+          btnNextSingle.style.display = 'none';
+          // Reset clearance strip on return to step 2
+          if (clearanceStatus) { clearanceStatus.style.display = 'none'; clearanceStatus.innerHTML = ''; }
+        } else {
+          // Step 1: hide group, show single Next
+          btnGroupRight.style.display = 'none';
+          btnNextSingle.style.display = 'inline-block';
+        }
       }
     }
 
@@ -1001,7 +1231,7 @@ if (session_status() === PHP_SESSION_NONE) {
       
       const weight = document.getElementById('donar_weight');
       const hb = document.getElementById('donar_hemoglobin');
-      const temp = document.getElementById('donar_temperature');
+      const tempEl = document.getElementById('donar_temperature');
       const bpSys = document.getElementById('donar_bp_systolic');
       const bpDia = document.getElementById('donar_bp_diastolic');
       const bloodGroup = document.getElementById('donar_blood_group');
@@ -1036,16 +1266,18 @@ if (session_status() === PHP_SESSION_NONE) {
         toggleErr('err_hb', false);
       }
 
-      // Temperature: 97.0 - 99.5
-      const tempVal = parseFloat(temp.value);
-      if (isNaN(tempVal) || tempVal < 97.0 || tempVal > 99.5) {
-        temp.classList.add('invalid');
-        toggleErr('err_temp', true);
-        isValid = false;
-      } else {
-        temp.classList.remove('invalid');
-        temp.classList.add('valid');
-        toggleErr('err_temp', false);
+      // Temperature: only validate if the field is visible (non-donor flow)
+      if (!isLoggedDonor && tempEl && tempEl.type !== 'hidden') {
+        const tempVal = parseFloat(tempEl.value);
+        if (isNaN(tempVal) || tempVal < 97.0 || tempVal > 99.5) {
+          tempEl.classList.add('invalid');
+          toggleErr('err_temp', true);
+          isValid = false;
+        } else {
+          tempEl.classList.remove('invalid');
+          tempEl.classList.add('valid');
+          toggleErr('err_temp', false);
+        }
       }
 
       // BP Systolic: 90 - 160
@@ -1072,22 +1304,26 @@ if (session_status() === PHP_SESSION_NONE) {
         toggleErr('err_diastolic', false);
       }
 
-      // Blood Group
-      if (!bloodGroup.value) {
-        bloodGroup.classList.add('invalid');
-        toggleErr('err_blood_group', true);
-        isValid = false;
-      } else {
-        bloodGroup.classList.remove('invalid');
-        bloodGroup.classList.add('valid');
-        toggleErr('err_blood_group', false);
+      // Blood Group (only validate if it's the select, not a hidden/readonly field)
+      if (!isLoggedDonor) {
+        if (!bloodGroup.value) {
+          bloodGroup.classList.add('invalid');
+          toggleErr('err_blood_group', true);
+          isValid = false;
+        } else {
+          bloodGroup.classList.remove('invalid');
+          bloodGroup.classList.add('valid');
+          toggleErr('err_blood_group', false);
+        }
       }
 
       // Contact No
       if (!contact.value.trim()) {
-        contact.classList.add('invalid');
-        toggleErr('err_contact', true);
-        isValid = false;
+        if (!isLoggedDonor) {
+          contact.classList.add('invalid');
+          toggleErr('err_contact', true);
+          isValid = false;
+        }
       } else {
         contact.classList.remove('invalid');
         contact.classList.add('valid');
@@ -1127,95 +1363,111 @@ if (session_status() === PHP_SESSION_NONE) {
       return isValid;
     }
 
-    // Step 3 Submission via AJAX & Trigger PDF
-    btnConfirmDonation.addEventListener('click', () => {
-      // Close overlay
-      eligibilityOverlay.classList.remove('active');
+    // ── Two-phase registration flow ────────────────────────────
+    function startRegistrationFlow() {
+      // Show overlay with Phase 1
+      document.getElementById('modalPhase1').style.display = 'block';
+      document.getElementById('modalPhase2').style.display = 'none';
+      eligibilityOverlay.classList.add('active');
 
-      const donatedAmount = document.getElementById('donated_amount').value;
+      // ── Start 1-second countdown ring ──
+      const ring = document.getElementById('countdownRing');
+      const numEl = document.getElementById('countdownNum');
+      const circumference = 326.73;
+      let secondsLeft = 1;
+      ring.style.strokeDashoffset = 0;
 
-      // Build parameters
+      const timer = setInterval(() => {
+        secondsLeft--;
+        numEl.textContent = secondsLeft;
+        ring.style.strokeDashoffset = ((1 - secondsLeft) / 1) * circumference;
+        if (secondsLeft <= 0) clearInterval(timer);
+      }, 1000);
+
+      // ── Fire AJAX submission in background ──
       const formData = new URLSearchParams();
       formData.append('ajax', '1');
-      formData.append('donated_amount', donatedAmount);
-      formData.append('donar_name', document.getElementById('donar_name').value);
-      formData.append('donar_gender', document.getElementById('donar_gender').value);
-      formData.append('donar_age', document.getElementById('donar_age').value);
-      formData.append('donar_dob', document.getElementById('donar_dob').value);
-      formData.append('donar_email', document.getElementById('donar_email').value);
-      formData.append('reg_password', document.getElementById('reg_password').value);
-      formData.append('reg_confirm', document.getElementById('reg_confirm').value);
-      
-      formData.append('donar_weight', document.getElementById('donar_weight').value);
-      formData.append('donar_hemoglobin', document.getElementById('donar_hemoglobin').value);
+      formData.append('donated_amount', '350');
+      formData.append('donar_name',     document.getElementById('donar_name').value);
+      formData.append('donar_gender',   document.getElementById('donar_gender').value);
+      formData.append('donar_age',      document.getElementById('donar_age').value);
+      formData.append('donar_dob',      document.getElementById('donar_dob').value);
+      formData.append('donar_email',    document.getElementById('donar_email').value);
+      formData.append('reg_password',   document.getElementById('reg_password').value);
+      formData.append('reg_confirm',    document.getElementById('reg_confirm').value);
+      formData.append('donar_weight',      document.getElementById('donar_weight').value);
+      formData.append('donar_hemoglobin',  document.getElementById('donar_hemoglobin').value);
       formData.append('donar_temperature', document.getElementById('donar_temperature').value);
       formData.append('donar_bp_systolic', document.getElementById('donar_bp_systolic').value);
-      formData.append('donar_bp_diastolic', document.getElementById('donar_bp_diastolic').value);
+      formData.append('donar_bp_diastolic',document.getElementById('donar_bp_diastolic').value);
       formData.append('donar_blood_group', document.getElementById('donar_blood_group').value);
-      formData.append('donar_contact', document.getElementById('donar_contact').value);
-      formData.append('donar_address', document.getElementById('donar_address').value);
-      formData.append('donar_last_donation', document.getElementById('donar_last_donation').value);
+      formData.append('donar_contact',     document.getElementById('donar_contact').value);
+      formData.append('donar_address',     document.getElementById('donar_address').value);
+      formData.append('donar_last_donation',document.getElementById('donar_last_donation').value);
+      resolveMedicalConditions();
       formData.append('donar_medical_conditions', document.getElementById('donar_medical_conditions').value);
 
-      // Perform Fetch Post request
+      let ajaxDone = false;
+      let ajaxResult = null;
+
       fetch('donors.php', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
         body: formData.toString()
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          registeredData = data;
-          
-          // Populate the Print Template Div values dynamically
-          document.getElementById('pdf_donor_name').textContent = data.name;
-          document.getElementById('pdf_donor_age').textContent = data.age;
-          document.getElementById('pdf_donor_group').textContent = data.blood_group;
-          document.getElementById('pdf_donor_amount').textContent = data.amount + ' ml';
-          document.getElementById('pdf_donation_date').textContent = data.date;
-          document.getElementById('pdf_cert_id').textContent = data.donor_id + '-' + Math.floor(Math.random() * 90000 + 10000);
-          document.getElementById('pdf_cert_code').textContent = 'SECURE-' + Math.floor(Math.random() * 900 + 100);
+      .then(r => r.json())
+      .then(data => { ajaxDone = true; ajaxResult = data; })
+      .catch(() => { ajaxDone = true; ajaxResult = { status: 'error', msg: 'Server connection error.' }; });
 
-          // Transition to Step 3 success screen
-          goToStep(3);
+      // ── Assign donation date = next Saturday ──
+      function getNextSaturday() {
+        const d = new Date();
+        const day = d.getDay(); // 0=Sun … 6=Sat
+        const daysUntilSat = (6 - day + 7) % 7 || 7;
+        d.setDate(d.getDate() + daysUntilSat);
+        return d.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      }
 
-          // Download PDF Certificate automatically after layout renders fully
-          setTimeout(() => {
-            downloadCertificatePDF();
-          }, 500);
+      // ── After 1 second: switch to Phase 2 ──
+      setTimeout(() => {
+        clearInterval(timer);
+        document.getElementById('countdownNum').textContent = '0';
+        ring.style.strokeDashoffset = circumference;
+
+        // Populate assigned date
+        document.getElementById('assignedDate').textContent = getNextSaturday();
+
+        // Show AJAX result message
+        const statusEl = document.getElementById('ajaxStatusMsg');
+        if (ajaxResult && ajaxResult.status === 'success') {
+          statusEl.innerHTML = '✅ Your registration has been saved successfully.';
+          statusEl.style.color = '#2e7d32';
+        } else if (ajaxResult) {
+          statusEl.innerHTML = '⚠️ Note: ' + (ajaxResult.msg || 'Could not save to database.');
+          statusEl.style.color = '#e65100';
         } else {
-          // Show database error
-          alert('Error: ' + data.msg.replace(/\|/g, '\n'));
+          statusEl.innerHTML = '🔄 Still syncing with server…';
+          statusEl.style.color = '#888';
         }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Server connection error. Please try again.');
-      });
-    });
 
-    // Generate and Download Certificate PDF Function
-    function downloadCertificatePDF() {
-      if (!registeredData) return;
-      const element = document.getElementById('pdf-certificate');
-      
-      const opt = {
-        margin:       10,
-        filename:     `blood_donation_certificate_${registeredData.name.replace(/\s+/g, '_')}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2.5, useCORS: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
-      };
-
-      // Generate PDF
-      html2pdf().from(element).set(opt).save();
+        // Transition: hide Phase 1, show Phase 2
+        document.getElementById('modalPhase1').style.display = 'none';
+        document.getElementById('modalPhase2').style.display = 'block';
+      }, 1000);
     }
 
-    btnDownloadPDF.addEventListener('click', downloadCertificatePDF);
+    document.addEventListener("DOMContentLoaded", function() {
+        if (isLoggedDonor) {
+            // Pre-fill visible Step 1 fields with session data (email/password are PHP hidden inputs)
+            document.getElementById('donar_name').value = donorName || 'Donor';
+            document.getElementById('donar_gender').value = 'Male';
+            document.getElementById('donar_dob').value = '1990-01-01';
+            document.getElementById('donar_age').value = '30';
+
+            // Jump directly to step 2 (Medical Attributes)
+            goToStep(2);
+        }
+    });
   </script>
 </body>
 </html>
