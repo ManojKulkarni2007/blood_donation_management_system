@@ -1,16 +1,16 @@
 -- Clear all existing transaction data
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE BDMS.Collection;
-TRUNCATE TABLE BDMS.Issue;
-TRUNCATE TABLE BDMS.Requests;
-TRUNCATE TABLE BDMS.Donar;
-TRUNCATE TABLE BDMS.Recipient;
+DELETE FROM Collection;
+DELETE FROM Issue;
+DELETE FROM Requests;
+DELETE FROM Donar;
+DELETE FROM Recipient;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ══════════════════════════════════════════════
 -- INSERT 16 DONORS (min 2 per blood group)
 -- ══════════════════════════════════════════════
-INSERT INTO BDMS.Donar (donar_name, donar_age, donar_gender, donar_blood_group, donar_contact, donar_address) VALUES
+INSERT INTO Donar (donar_name, donar_age, donar_gender, donar_blood_group, donar_contact, donar_address) VALUES
 -- A+
 ('Rahul Sharma',     28, 'Male',   'A+',  '+91-9876501001', 'Hubli, Karnataka'),
 ('Priya Nair',       25, 'Female', 'A+',  '+91-9876501002', 'Hubli, Karnataka'),
@@ -39,7 +39,7 @@ INSERT INTO BDMS.Donar (donar_name, donar_age, donar_gender, donar_blood_group, 
 -- ══════════════════════════════════════════════
 -- INSERT 5 DONOR COLLECTION RECORDS
 -- ══════════════════════════════════════════════
-INSERT INTO BDMS.Collection (donar_id, collection_date, collection_quantity) VALUES
+INSERT INTO Collection (donar_id, collection_date, collection_quantity) VALUES
 (1,  '2026-04-10', 450),
 (3,  '2026-04-15', 350),
 (5,  '2026-04-20', 450),
@@ -49,7 +49,7 @@ INSERT INTO BDMS.Collection (donar_id, collection_date, collection_quantity) VAL
 -- ══════════════════════════════════════════════
 -- INSERT 5 RECIPIENTS
 -- ══════════════════════════════════════════════
-INSERT INTO BDMS.Recipient (recipient_name, recipient_age, recipient_gender, recipient_blood_group, recipient_contact, recipient_hospital) VALUES
+INSERT INTO Recipient (recipient_name, recipient_age, recipient_gender, recipient_blood_group, recipient_contact, recipient_hospital) VALUES
 ('Amit Verma',    45, 'Male',   'A+',  '+91-9988001001', 'KIMS Hospital, Hubli'),
 ('Sonal Mehta',   32, 'Female', 'B+',  '+91-9988001002', 'Apollo Hospital, Bangalore'),
 ('Rajan Das',     60, 'Male',   'O+',  '+91-9988001003', 'Manipal Hospital, Mangalore'),
@@ -59,7 +59,7 @@ INSERT INTO BDMS.Recipient (recipient_name, recipient_age, recipient_gender, rec
 -- ══════════════════════════════════════════════
 -- INSERT 5 BLOOD ISSUE RECORDS (Recipient Transactions)
 -- ══════════════════════════════════════════════
-INSERT INTO BDMS.Issue (recipient_id, blood_group, quantity, issue_date) VALUES
+INSERT INTO Issue (recipient_id, blood_group, quantity, issue_date) VALUES
 (1, 'A+',  450, '2026-04-12'),
 (2, 'B+',  350, '2026-04-22'),
 (3, 'O+',  450, '2026-05-03'),
@@ -69,7 +69,7 @@ INSERT INTO BDMS.Issue (recipient_id, blood_group, quantity, issue_date) VALUES
 -- ══════════════════════════════════════════════
 -- INSERT 5 BLOOD REQUESTS (5 different hospitals)
 -- ══════════════════════════════════════════════
-INSERT INTO BDMS.Requests (patient_name, blood_group, units, hospital, contact) VALUES
+INSERT INTO Requests (patient_name, blood_group, units, hospital, contact) VALUES
 ('Ramesh Kumar',  'A+',  2, 'KIMS Hospital, Hubli',           '+91-9900001001'),
 ('Fatima Sheikh', 'B-',  1, 'Apollo Hospital, Bangalore',     '+91-9900001002'),
 ('Dev Anand',     'O+',  3, 'Manipal Hospital, Mangalore',    '+91-9900001003'),
